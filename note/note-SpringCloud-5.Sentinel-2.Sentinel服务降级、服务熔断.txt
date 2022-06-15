@@ -1,0 +1,26 @@
+1.启动sentinel的jar
+    java -jar sentinel-dashboard-1.8.4.jar
+1.pom.xml添加依赖
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+2.yml增加配置
+    spring:
+      cloud:
+        sentinel:
+          transport:
+            dashboard: localhost:8080 #配置Sentinel dashboard地址
+            port: 8719
+3.主启动类不用增加任何注解
+4.编写测试代码
+    详情查看:
+        OrderConsumerSentinelController
+5.登录sentine控制面板进行配置
+    http://localhost:8080/
+    用户名/密码: sentinel/sentinel
+6.注意事项:
+    @SentinelResource注解配置说明:
+        value:资源名
+        fallback:fallback只负责业务异常
+        blockHandler:blockHandler只负责sentinel控制台配置违规

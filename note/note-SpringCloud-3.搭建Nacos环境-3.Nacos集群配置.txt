@@ -1,0 +1,40 @@
+Windows环境Nacos集群配置(最少需要三台Nacos才能搭建集群)
+1.搭建Nacos集群节点
+    节点1:
+        1.首先单机版本Nacos切换到Mysql持久化模式
+        2.在application.properties文件中修改server.prot为3333:
+        2.进入\nacos-server-2.1.0\conf\目录下,找到cluster.conf.example文件,复制一份,重命名为cluster.conf添加集群节点信息
+            localhost:3333
+            localhost:4444
+            localhost:5555
+        #3..将\nacos-server-2.1.0\bin\startup.cmd 文件里的MODE设置为"cluster"
+    节点2:
+        1.首先单机版本Nacos切换到Mysql持久化模式
+        2.在application.properties文件中修改server.prot为4444:
+        2.进入\nacos-server-2.1.0\conf\目录下,找到cluster.conf.example文件,复制一份,重命名为cluster.conf添加集群节点信息
+            localhost:3333
+            localhost:4444
+            localhost:5555
+        #3..将\nacos-server-2.1.0\bin\startup.cmd 文件里的MODE设置为"cluster"
+    节点3:
+        1.首先单机版本Nacos切换到Mysql持久化模式
+        2.在application.properties文件中修改server.prot为5555:
+        2.进入\nacos-server-2.1.0\conf\目录下,找到cluster.conf.example文件,复制一份,重命名为cluster.conf添加集群节点信息
+            localhost:3333
+            localhost:4444
+            localhost:5555
+        #3..将\nacos-server-2.1.0\bin\startup.cmd 文件里的MODE设置为"cluster"
+2.编写一次启动三个nacos的bat
+    start .\nacos-server-2.1.0_mysql3333\bin\startup.cmd
+    start .\nacos-server-2.1.0_mysql4444\bin\startup.cmd
+    start .\nacos-server-2.1.0_mysql5555\bin\startup.cmd
+3.进入\nacos_cluster\nginx-1.22.0\conf\nginx.conf中
+    http {}中添加如下配置:
+        upstream nacos-cluster {
+            server localhost:3333;
+            server localhost:4444;
+            server localhost:5555;
+        }
+    server {}/location /{}中添加如下配置:
+        proxy_pass http://nacos-cluster;
+

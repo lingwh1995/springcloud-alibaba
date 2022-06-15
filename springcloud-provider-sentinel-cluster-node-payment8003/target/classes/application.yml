@@ -1,0 +1,39 @@
+server:
+  port: 8003 #访问端口
+
+spring:
+  application:
+    name: SPRINGCLOUD-PROVIDER-SENTINEL-PAYMENT-SERVICE-CLUSTER #注意:服务名不要出现_
+  devtools: #热部署开关
+    restart:
+      enabled: true
+  logging:
+    level: info
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848 #配置Nacos地址
+    sentinel:
+      transport:
+        dashboard: localhost:8080 #配置Sentinel dashboard地址
+        port: 8719
+      datasource:
+        ds1:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}
+            groupId: DEFAULT_GROUP
+            data-type: json
+            rule-type: flow
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource            # 当前数据源操作类型
+    driver-class-name: org.gjt.mm.mysql.Driver              # mysql驱动包
+    url: jdbc:mysql://localhost:3306/payment?useUnicode=true&characterEncoding=utf-8&useSSL=false
+    username: root
+    password: 123456
+
+mybatis:
+  mapperLocations: classpath:mapper/*.xml
+  type-aliases-package: org.openatom.springcloud.entities    # 所有Entity别名类所在包
+
+

@@ -1,0 +1,31 @@
+1.首先需要在SpringCloud Alibaba项目中集成好Nacos配置中心
+2.引入依赖
+    <dependency>
+        <groupId>com.purgeteam</groupId>
+        <artifactId>dynamic-config-spring-boot-starter</artifactId>
+        <version>0.1.1.RELEASE</version>
+    </dependency>
+3.编写监听器
+    @Slf4j
+    @Component
+    public class NacosConfigListener implements ApplicationListener<ActionConfigEvent> {
+        @Override
+        public void onApplicationEvent(ActionConfigEvent event) {
+            log.info("接收事件");
+            Map<String, HashMap> map = event.getPropertyMap();
+            for (Map.Entry<String, HashMap> entry : map.entrySet()) {
+                String key = entry.getKey();
+                Map changeMap = entry.getValue();
+                String before = String.valueOf(changeMap.get("before"));
+                String after = String.valueOf(changeMap.get("after"));
+                if(log.isInfoEnabled()){
+                    log.info("配置[key:{}]被改变，改变前before：{}，改变后after：{}",key,before,after);
+                }
+                // 落表记录
+            }
+        }
+    }
+4.主启动类添加注解
+    @EnableDynamicConfigEvent
+5.测试监听器
+    在Nacos配置界面修改配置信息,然后后台会输入修改的配置信息

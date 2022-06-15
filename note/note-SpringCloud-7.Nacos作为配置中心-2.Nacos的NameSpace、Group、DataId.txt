@@ -1,0 +1,9 @@
+1.Nacos DataId命名规则:
+    ${spring.application.name}-${spring.profile.active}.${spring.cloud.nacos.config.file-extension}
+2.NameSpace、Group、Data Id
+    NameSpace:
+        名空间(Namespace)是用于隔离多个环境的（如开发、测试、生产）
+    Group:
+        同一项目，不同模块需要隔离；这个可以采用软件隔离
+    Data Id:
+        具体的配置文件名称

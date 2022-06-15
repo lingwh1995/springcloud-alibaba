@@ -1,0 +1,88 @@
+1.引入依赖
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!--引入公共的工程-->
+        <dependency>
+            <groupId>org.openatom</groupId>
+            <artifactId>springcloud-api-commons</artifactId>
+        </dependency>
+        <!--SpringCloud ailibaba nacos -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <!--使用Nacos作为配置中心要额外加上引入这个依赖nacos-config:开始-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <!--使用Nacos作为配置中心要额外加上引入这个依赖nacos-config:结束-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+    </dependencies>
+2.编写配置文件
+    1>.编写bootstrap.yml
+        server:
+          port: 80
+
+        spring:
+          application:
+            name: SPRINGCLOUD-CONSUMER-NACOS-LOADBALANCE-OPENFEIGN-CONFIGURATION-ORDER80
+          cloud:
+            nacos:
+              discovery:
+                server-addr: localhost:8848 #Nacos服务注册中心地址
+              #使用Nacos作为配置中心添加这段配置:开始
+              config:
+                server-addr: localhost:8848 #Nacos作为配置中心地址
+                file-extension: yaml #指定yaml格式的配置
+                #如果使用默认GROUP(即DEFAULT_GROUP),可以省略下面group配置
+                group: DEV_GROUP
+                #如果使用默认NAMESPACE(即public),可以省略下面namespace配置
+                namespace: cc54fbe0-037a-418a-baf4-8090342ec1ed
+              #使用Nacos作为配置中心添加这段配置:结束
+
+        # ${spring.application.name}-${spring.profile.active}.${spring.cloud.nacos.config.file-extension}
+        # SPRINGCLOUD-CONSUMER-NACOS-LOADBALANCE-OPENFEIGN-CONFIGURATION-ORDER80-dev.yaml
+    2>.编写application.yml
+        spring:
+          profiles:
+            active: dev # 表示开发环境
+            #active: test # 表示测试环境
+            #active: info
+3.编写测试Controller
+    @RestController
+    @RefreshScope //支持Nacos的动态刷新功能。
+    public class NacosConfigController {
+
+        @Value("${config.info}")
+        private String configInfo;
+
+        @GetMapping("/config/info")
+        public String getConfigInfo() {
+            return configInfo;
+        }
+    }
+4.编写主启动类并添加注解
+    @EnableDiscoveryClient
+    @SpringBootApplication
+    @EnableFeignClients
+    public class OrderServiceConsumerNacosLoadBalanceOpenFeignConfiguration80 {
+        public static void main(String[] args) {
+            SpringApplication.run(OrderServiceConsumerNacosLoadBalanceOpenFeignConfiguration80.class, args);
+        }
+    }
+5.测试Apollo配置中心
+	方式一:查看程序是否可以正常启动,可以正常启动则说明Nacos运行成功
+	方式二:访问	http://localhost/config/info 看是否能正确显示在Nacos中添加的配置
+7.注意事项:
+    1.启动好Nacos后再启动项目,因为项目的配置都是从Nacos中获取的

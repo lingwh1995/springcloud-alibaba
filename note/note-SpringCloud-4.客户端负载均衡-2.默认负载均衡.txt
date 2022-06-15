@@ -1,0 +1,58 @@
+1.引入依赖
+    注意:同搭建EurekaClient所需依赖一样,不需要引入任何额外的依赖,SpringCloud自身就有负载均衡相关组件
+     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!--引入公共的工程-->
+        <dependency>
+            <groupId>org.openatom</groupId>
+            <artifactId>springcloud-api-commons</artifactId>
+        </dependency>
+        <!--SpringCloud ailibaba nacos -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+    </dependencies>
+2.编写YML文件
+    server:
+      port: 80
+
+    spring:
+      application:
+        name: SPRINGCLOUD-CONSUMER-LOADBALANCE-DEFAULT-ORDER80 #注意:服务名不要出现_
+      devtools:
+        restart:
+          enabled: true
+      logging:
+        level: info
+      cloud:
+        nacos:
+          discovery:
+            server-addr: localhost:8848 #配置Nacos地址
+
+    #服务提供方信息
+    service:
+      provider:
+        name: SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER #服务提供方名称
+        url: http://${service.provider.name} #服务提供方调用地址
+3.给容器中注入RestTemplate
+    @Configuration
+    public class ApplicationContextConfig {
+        @Bean
+        //必须加这个注解,不加这个注解访问会报错
+        @LoadBalanced
+        public RestTemplate getRestTemplate(){
+            return new RestTemplate();
+        }
+    }
+3.访问地址:
+    访问路径:http://localhost/consumer/payment/get/1
+4.测试负载均衡效果
+    轮询调用

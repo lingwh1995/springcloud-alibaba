@@ -1,0 +1,378 @@
+1.硬编码实现Ribbon负载均衡
+    1>.使用Ribbon自带的负载均衡算法
+        1>>.引入依赖
+            注意:同搭建EurekaClient所需依赖一样,不需要引入任何额外的依赖,SpringCloud自身就有Ribbon相关组件
+             <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-actuator</artifactId>
+                </dependency>
+                <!--引入公共的工程-->
+                <dependency>
+                    <groupId>org.openatom</groupId>
+                    <artifactId>springcloud-api-commons</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.alibaba.cloud</groupId>
+                    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                </dependency>
+            </dependencies>
+        2>>.编写YML文件
+            server:
+              port: 80
+
+            spring:
+                application:
+                    name: SPRINGCLOUD-CONSUMER-LOADBALANCE-RIBBON-HARDCODE-ORDER80 #注意:服务名不要出现_
+                devtools:
+                  restart:
+                    enabled: true
+                logging:
+                  level: info
+                cloud:
+                  nacos:
+                    discovery:
+                      server-addr: localhost:8848 #配置Nacos地址
+
+            #服务提供方信息
+            service:
+              provider:
+                name: SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER
+                url: http://${service.provider.name} #服务提供方名称
+        3>>.编写负载均衡算法类MySelfRule.java,注意:这个类所在的位置不要和主启动类在同一个包中
+            @Configuration
+            public class MySelfRule {
+                @Bean
+                public IRule myRule() {
+                    return new RandomRule();//定义为随机
+                }
+            }
+        4>>.容器中注入RestTemplate
+            @Configuration
+            public class ApplicationContextConfig {
+                @Bean
+                //必须加这个注解,不加这个注解访问会报错
+                @LoadBalanced
+                public RestTemplate getRestTemplate()
+                {
+                    return new RestTemplate();
+                }
+            }
+        5>>.编写主启动类并添加Ribbon相关注解
+        @EnableDiscoveryClient
+        @SpringBootApplication
+        public class OrderServiceConsumerLoadBalanceDefault80 {
+
+            public static void main(String[] args) {
+                SpringApplication.run(OrderServiceConsumerLoadBalanceDefault80.class, args);
+            }
+        }
+    2>.使用自定义的Ribbon负载均衡算法
+        1>>.引入依赖
+            注意:同搭建EurekaClient所需依赖一样,不需要引入任何额外的依赖,SpringCloud自身就有Ribbon相关组件
+             <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-actuator</artifactId>
+                </dependency>
+                <!--引入公共的工程-->
+                <dependency>
+                    <groupId>org.openatom</groupId>
+                    <artifactId>springcloud-api-commons</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.alibaba.cloud</groupId>
+                    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                </dependency>
+            </dependencies>
+        2>>.编写YML文件
+            server:
+              port: 80
+
+            spring:
+                application:
+                    name: SPRINGCLOUD-CONSUMER-LOADBALANCE-RIBBON-CUSTOM-STRATEGY-HARDCODE-ORDER80 #注意:服务名不要出现_
+                devtools:
+                  restart:
+                    enabled: true
+                logging:
+                  level: info
+                cloud:
+                  nacos:
+                    discovery:
+                      server-addr: localhost:8848 #配置Nacos地址
+
+            #服务提供方信息
+            service:
+              provider:
+                name: SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER
+                url: http://${service.provider.name} #服务提供方名称
+        3>>.编写负载均衡算法类MyRoundRobinRule.java,注意:这个类所在的位置不限制,能被容器加载就行
+            @Component
+            public class MyRoundRobinRule extends AbstractLoadBalancerRule {
+                public MyRoundRobinRule() {
+                }
+
+                @SuppressWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE"})
+                public Server choose(ILoadBalancer lb, Object key) {
+                    if (lb == null) {
+                        return null;
+                    } else {
+                        Server server = null;
+                        while(server == null) {
+                            if (Thread.interrupted()) {
+                                return null;
+                            }
+                            List<Server> upList = lb.getReachableServers();
+                            List<Server> allList = lb.getAllServers();
+                            int serverCount = allList.size();
+                            if (serverCount == 0) {
+                                return null;
+                            }
+                            int index = this.chooseRandomInt(serverCount);
+                            server = (Server)upList.get(index);
+                            if (server == null) {
+                                Thread.yield();
+                            } else {
+                                if (server.isAlive()) {
+                                    return server;
+                                }
+                                server = null;
+                                Thread.yield();
+                            }
+                        }
+                        return server;
+                    }
+                }
+
+                protected int chooseRandomInt(int serverCount) {
+                    return ThreadLocalRandom.current().nextInt(serverCount);
+                }
+
+                public Server choose(Object key) {
+                    return this.choose(this.getLoadBalancer(), key);
+                }
+
+                public void initWithNiwsConfig(IClientConfig clientConfig) {
+                }
+            }
+        4>>.容器中注入RestTemplate
+            @Configuration
+            public class ApplicationContextConfig {
+                @Bean
+                //必须加这个注解,不加这个注解访问会报错
+                @LoadBalanced
+                public RestTemplate getRestTemplate()
+                {
+                    return new RestTemplate();
+                }
+            }
+        5>>.编写主启动类并添加Ribbon相关注解
+            @SpringBootApplication
+            @EnableDiscoveryClient
+            @RibbonClient(name = "SPRING-CLOUD-PROVIDER-EUREKA-PAYMENT-SERVICE",configuration= MyRoundRobinRule.class)
+            public class OrderServiceConsumerLoadBalanceRibbonCustomerStrategyHardcode80 {
+
+                public static void main(String[] args) {
+                    SpringApplication.run(OrderServiceConsumerLoadBalanceRibbonCustomerStrategyHardcode80.class, args);
+                }
+            }
+2.YML文件配置实现Ribbon负载均衡
+    1>.使用Ribbon自带的负载均衡算法
+         1>>.引入依赖
+            注意:同搭建EurekaClient所需依赖一样,不需要引入任何额外的依赖,SpringCloud自身就有Ribbon相关组件
+             <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-actuator</artifactId>
+                </dependency>
+                <!--引入公共的工程-->
+                <dependency>
+                    <groupId>org.openatom</groupId>
+                    <artifactId>springcloud-api-commons</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.alibaba.cloud</groupId>
+                    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                </dependency>
+            </dependencies>
+         2>>.编写YML文件
+            server:
+              port: 80
+            spring:
+                application:
+                    name: SPRINGCLOUD-CONSUMER-LOADBALANCE-RIBBON-CONFIGURATION-ORDER80 #注意:服务名不要出现_
+                devtools:
+                  restart:
+                    enabled: true
+                logging:
+                  level: info
+                cloud:
+                  nacos:
+                    discovery:
+                      server-addr: localhost:8848 #配置Nacos地址
+
+            #某个/某些服务的Ribbon配置
+            SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER: #服务提供方名称
+              ribbon:
+                NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule   #Ribbon负载均衡规则类所在的路径,自带七种规则,也可以是自定位规则的类所在的路径
+
+            #服务提供方信息
+            service:
+              provider:
+                name: SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER  #服务提供方名称
+                url: http://${service.provider.name} #服务提供方调用地址
+         3>>.容器中注入RestTemplate
+            @Configuration
+            public class ApplicationContextConfig {
+                @Bean
+                //必须加这个注解,不加这个注解访问会报错
+                @LoadBalanced
+                public RestTemplate getRestTemplate()
+                {
+                    return new RestTemplate();
+                }
+            }
+         4>>.编写主启动类,主启动类中不需要任何Ribbon相关配置
+            @SpringBootApplication
+            @EnableDiscoveryClient
+            public class OrderServiceConsumerLoadBalanceRibbonConfiguration80 {
+
+                public static void main(String[] args) {
+                    SpringApplication.run(OrderServiceConsumerLoadBalanceRibbonConfiguration80.class, args);
+                }
+            }
+    2>.使用自定义的Ribbon负载均衡算法
+         1>>.引入依赖
+            注意:同搭建EurekaClient所需依赖一样,不需要引入任何额外的依赖,SpringCloud自身就有Ribbon相关组件
+             <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-actuator</artifactId>
+                </dependency>
+                <!--引入公共的工程-->
+                <dependency>
+                    <groupId>org.openatom</groupId>
+                    <artifactId>springcloud-api-commons</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.alibaba.cloud</groupId>
+                    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                </dependency>
+            </dependencies>
+         2>>.编写YML文件
+           server:
+             port: 80
+
+           spring:
+               application:
+                   name: SPRINGCLOUD-CONSUMER-LOADBALANCE-RIBBON-CUSTOM-STRATEGY-CONFIGURATION-ORDER80 #注意:服务名不要出现_
+               devtools:
+                 restart:
+                   enabled: true
+               logging:
+                 level: info
+               cloud:
+                 nacos:
+                   discovery:
+                     server-addr: localhost:8848 #配置Nacos地址
+
+           #某个/某些服务的Ribbon配置
+           SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER: #服务提供方名称
+             ribbon:
+               NFLoadBalancerRuleClassName: org.openatom.springcloud.loadbalance.MyRandomRule  #Ribbon负载均衡规则类所在的路径,自带七种规则,也可以是自定位规则的类所在的路径
+
+           #服务提供方信息
+           service:
+             provider:
+               name: SPRINGCLOUD-PROVIDER-PAYMENT-SERVICE-CLUSTER
+               url: http://${service.provider.name} #服务提供方名称
+         3>>.编写负载均衡算法类MyRoundRobinRule.java,注意:这个类所在的位置不限制,能被容器加载就行
+            @Component
+            public class MyRoundRobinRule extends AbstractLoadBalancerRule {
+                public MyRoundRobinRule() {
+                }
+
+                @SuppressWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE"})
+                public Server choose(ILoadBalancer lb, Object key) {
+                    if (lb == null) {
+                        return null;
+                    } else {
+                        Server server = null;
+                        while(server == null) {
+                            if (Thread.interrupted()) {
+                                return null;
+                            }
+                            List<Server> upList = lb.getReachableServers();
+                            List<Server> allList = lb.getAllServers();
+                            int serverCount = allList.size();
+                            if (serverCount == 0) {
+                                return null;
+                            }
+                            int index = this.chooseRandomInt(serverCount);
+                            server = (Server)upList.get(index);
+                            if (server == null) {
+                                Thread.yield();
+                            } else {
+                                if (server.isAlive()) {
+                                    return server;
+                                }
+                                server = null;
+                                Thread.yield();
+                            }
+                        }
+                        return server;
+                    }
+                }
+
+                protected int chooseRandomInt(int serverCount) {
+                    return ThreadLocalRandom.current().nextInt(serverCount);
+                }
+
+                public Server choose(Object key) {
+                    return this.choose(this.getLoadBalancer(), key);
+                }
+
+                public void initWithNiwsConfig(IClientConfig clientConfig) {
+                }
+            }
+         4>>.容器中注入RestTemplate
+            @Configuration
+            public class ApplicationContextConfig {
+                @Bean
+                //必须加这个注解,不加这个注解访问会报错
+                @LoadBalanced
+                public RestTemplate getRestTemplate()
+                {
+                    return new RestTemplate();
+                }
+            }
+         5>>.编写主启动类,主启动类中不需要任何Ribbon相关配置
+            @SpringBootApplication
+            @EnableDiscoveryClient
+            public class OrderServiceConsumerLoadBalanceRibbonCustomerStrategyConfiguration80 {
+
+                public static void main(String[] args) {
+                    SpringApplication.run(OrderServiceConsumerLoadBalanceRibbonCustomerStrategyConfiguration80.class, args);
+                }
+            }
+3.所用RiBbon注意事项
+    不需要导入额外的依赖,spring-cloud-starter-alibaba-nacos-discovery自带Ribbon
+4.Ribbon负载均衡测试地址
+    http://localhost/consumer/payment/get/1

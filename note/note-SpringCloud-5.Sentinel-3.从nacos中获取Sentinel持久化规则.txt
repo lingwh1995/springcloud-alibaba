@@ -1,0 +1,37 @@
+1.pom.xml中添加
+    <dependency>
+        <groupId>com.alibaba.csp</groupId>
+        <artifactId>sentinel-datasource-nacos</artifactId>
+    </dependency>
+2.yml中添加配置(datasource相关配置)
+    spring:
+      cloud:
+        sentinel:
+          datasource:
+            ds1:
+              nacos:
+                server-addr: localhost:8848
+                dataId: ${spring.application.name}
+                groupId: DEFAULT_GROUP
+                data-type: json
+                rule-type: flow
+3.在nacos中配置相关资源的流控规则
+    Nacos->配置管理->配置列表->新增
+        data id:  ${spring.cloud.sentinel.datasource.ds1.dataId}
+        配置内容:(以/testA的流控规则为例)
+            [
+                 {
+                 "resource": "/testA",
+                 "limitApp": "default",
+                 "grade": 1,
+                 "count": 1,
+                 "strategy": 0,
+                 "controlBehavior": 0,
+                 "clusterMode": false
+                 }
+             ]
+4.测试从nacos中获取sentinel配置好的流控规则
+    1>.访问http://localhost/testA
+    2>.在sentinel的流控规则列表中查询从nacos中获取的流控规则
+    注意事项:
+            此时流控规则依然时懒加载,需要先访问一下http://localhost/testA才能查看到从nacos中获取的流控规则

@@ -1,0 +1,15 @@
+Nacos持久化配置:
+1.进入\nacos-server-2.1.0\conf\目录下,找到nacos-mysql.sql文件
+2.打开mysql,创建数据库nacos_config
+    create database nacos_config;
+    use nacos_config;
+3.执行数据库脚本
+4.进入\nacos-server-2.1.0\conf\目录下,找到application.properties,复制一份重命名为application.properties.bk作为备份
+在application.properties文件最下面添加数据库连接信息:
+spring.datasource.platform=mysql
+
+db.num=1
+
+db.url.0=jdbc:mysql://192.168.0.2:3306/nacos_config?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+db.user.0=root
+db.password.0=123456
