@@ -115,3 +115,7 @@
     11.带有Apollo配置中心的消费端搭建(调用的服务以实际配置的服务为准)
     12.带有Slueth和Zipkin监控调用链路的提供者8805(服务提供者)、8006(服务提供者)搭建
     13.带有Slueth和Zipkin监控调用链路的消费者搭建
+    14.seata相关项目搭建
+        seata-order
+        seata-account
+        seata-storage
