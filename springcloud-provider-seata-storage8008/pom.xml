@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>springcloud-provider-seata-storaget8008</artifactId>
+    <artifactId>springcloud-provider-seata-storage8008</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
