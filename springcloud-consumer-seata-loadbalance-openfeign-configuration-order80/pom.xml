@@ -63,7 +63,6 @@
         <dependency>
             <groupId>io.seata</groupId>
             <artifactId>seata-spring-boot-starter</artifactId>
-            <version>1.4.2</version>
         </dependency>
     </dependencies>
     <!--热部署需要加这个-->
