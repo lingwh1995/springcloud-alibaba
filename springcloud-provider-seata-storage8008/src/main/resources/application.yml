@@ -40,7 +40,7 @@ seata:
   # 事务群组,配置项值为TC集群名,需要与服务端保持一致
   service:
     vgroup-mapping:
-      my_test_tx_group: default
+      my_test_tx_group: default #和registry.nacos.cluster的值保持一致
 #--------------------如果seata使用的nacos和当前项目使用的nacos是同一个,则不用配置下面代码:开始--------------------
   #整合nacos配置中心
   config:

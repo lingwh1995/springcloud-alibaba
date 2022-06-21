@@ -2,8 +2,8 @@
     本地事务和seata事务的区别:
         本地事务只可以在同一台机器的同一个mysql中进行操作,seata事务可以跨机器进行事务控制
 单机版:
-1.修改registry.conf
-    进入seata-server-1.4.2\conf\registry.conf
+1.修改registry.conf和file.conf中配置
+    1>.进入seata-server-1.4.2\conf\registry.conf
         registry{
           #修改type为nacos
           type = "nacos"
@@ -32,6 +32,9 @@
             password = "nacos"
           }
         }
+    2>.修改file.conf中配置(当开始事务时可以在数据库中查询到事务日志)
+        修改mode为db
+        修改数据库连接信息
 2.修改file.conf
     进入seata-server-1.4.2\conf\file.conf
     store {
